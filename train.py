@@ -9,9 +9,10 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from keras.models import Sequential 
-from keras.layers import Flatten, Dense
+from keras.layers import Flatten, Dense, Lambda
 
 # TODO: Open and read driving log
+print ("Training the Model")
 lines = []
 with open("./data/driving_log.csv") as csvfile:
 	reader = csv.reader(csvfile)
@@ -22,7 +23,7 @@ with open("./data/driving_log.csv") as csvfile:
 			first_line = False
 		else:
 			lines.append(line)
-print(lines[0])
+#print(lines[0])
 
 # TODO: For each line in the driving log, read the corresponding image files
 images = []
@@ -43,14 +44,29 @@ for line in lines:
 #plt.imshow(cv2.cvtColor(images[0], cv2.COLOR_BGR2RGB))
 #plt.show()
 
+# TODO: Augment Data
+augmented_images = []
+augmented_mesurements = []
+
+for image, measurement in zip(images, measurements):
+	augmented_images.append(image)
+	augmented_mesurements.append(measurements)
+	# Append a flipped version of the image
+	augmented_images.append(cv2.flip(iamge,1))
+	augmented_mesurements.append(measurement*-1.0)
+
 # TODO: Convert data to numpy arrays to be used with Keras
-X_train = np.array(images)
-y_train = np.array(measurements)
+print("# of images in the data set: " + str(len(images)))
+print("# of images + augmented:     " + str(len(augmented_images)))
+X_train = np.array(augmented_images)
+y_train = np.array(augmented_mesurements)
 
 # TODO: Build Neural Network
 # Simple Regression Model for Testing 
 model = Sequential()
-model.add(Flatten(input_shape=(160,320,3)))
+# TODO: Preprocess (Normalize and Mean Center)
+model.add(Lambda(lambda x: x / 255.0 - 0.5, input_shape = (160,320,3)))
+model.add(Flatten())
 model.add(Dense(1))
 
 model.compile(loss = 'mse', optimizer = 'adam')
