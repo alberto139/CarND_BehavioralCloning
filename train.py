@@ -29,7 +29,7 @@ def generator(samples, batch_size=128):
 
             images = []
             angles = []
-            correction = 0.1
+            correction = 0.5
             for batch_sample in batch_samples:
             	# Center Image
                 name = "./data/IMG/IMG/"+batch_sample[0].split('/')[-1]
@@ -74,7 +74,7 @@ with open("./data/IMG/driving_log.csv") as csvfile:
 			lines.append(line)
 
 # TODO: For each line in the driving log, read the corresponding image files
-samples = lines[0:1000]
+samples = lines
 train_samples, validation_samples = train_test_split(samples, test_size=0.2)
 
 #plt.axis("off")
@@ -92,11 +92,11 @@ model = Sequential()
 # TODO: Preprocess (Normalize and Mean Center)
 model.add(Lambda(lambda x: x / 255.0 - 0.5, input_shape = (160,320,3)))
 model.add(Cropping2D(cropping=((50,20), (0,0)), input_shape=(160,320,3)))
-model.add(Convolution2D(24, (5, 5), strides=(2, 2), activation="relu"))
-model.add(Convolution2D(36, (5, 5), strides=(2, 2), activation="relu"))
-model.add(Convolution2D(48, (5, 5), strides=(2, 2), activation="relu"))
-model.add(Convolution2D(64, (3, 3), activation="relu"))
-model.add(Convolution2D(64, (3, 3), activation="relu"))
+model.add(Convolution2D(16, 3, 3, subsample=(2, 2), activation="relu"))
+model.add(Convolution2D(32, 3, 3, subsample=(2, 2), activation="relu"))
+model.add(Convolution2D(64, 5, 5, subsample=(2, 2), activation="relu"))
+model.add(Convolution2D(64, 3, 3, activation="relu"))
+model.add(Convolution2D(64, 3, 3, activation="relu"))
 model.add(Flatten())
 model.add(Dense(100))
 model.add(Dense(50))
@@ -110,4 +110,13 @@ model.fit_generator(train_generator, samples_per_epoch= len(train_samples), vali
 # Save model
 model.save('model.h5')
 print("DONE Training")
+
+
+
+
+
+
+
+
+
 
