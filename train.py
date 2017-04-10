@@ -3,7 +3,10 @@
 # Date: April 9, 2017
 # Description: train.py is the python code used to extract the images made
 # by the Udacity SDC simulator and use them to train a Convolutional Neural Network
-
+import os
+import sklearn
+from sklearn.utils import shuffle
+from sklearn.model_selection import train_test_split
 import csv
 import cv2
 import matplotlib.pyplot as plt
@@ -12,6 +15,50 @@ from keras.models import Sequential
 from keras.layers import Flatten, Dense, Lambda, Cropping2D
 from keras.layers.pooling import MaxPooling2D
 from keras.layers.convolutional import Convolution2D
+
+
+# generator()
+# input: samples - is an array of lines from the csv file
+#		 btach_size
+def generator(samples, batch_size=128):
+    num_samples = len(samples)
+    while 1: # Loop forever so the generator never terminates
+        shuffle(samples)
+        for offset in range(0, num_samples, batch_size):
+            batch_samples = samples[offset:offset+batch_size]
+
+            images = []
+            angles = []
+            correction = 0.1
+            for batch_sample in batch_samples:
+            	# Center Image
+                name = "./data/IMG/IMG/"+batch_sample[0].split('/')[-1]
+                center_image = cv2.imread(name)
+                center_angle = float(batch_sample[3])
+                images.append(center_image)
+                images.append(cv2.flip(center_image,1))
+                angles.append(center_angle)
+                angles.append(center_angle*-1.0)
+                # Left Image
+                name = "./data/IMG/IMG/"+batch_sample[1].split('/')[-1]
+                left_image = cv2.imread(name)
+                images.append(left_image)
+                images.append(cv2.flip(left_image,1))
+                angles.append(center_angle + correction)
+                angles.append((center_angle + correction) *-1.0)
+                # Right Image
+                name = "./data/IMG/IMG/"+batch_sample[2].split('/')[-1]
+                right_image = cv2.imread(name)
+                images.append(right_image)
+                images.append(cv2.flip(right_image,1))
+                angles.append(center_angle - correction)
+                angles.append((center_angle - correction) *-1.0)
+
+            # trim image to only see section with road
+            X_train = np.array(images)
+            y_train = np.array(angles)
+            yield (X_train, y_train)
+
 
 # TODO: Open and read driving log
 print ("Training the Model....")
@@ -27,57 +74,16 @@ with open("./data/IMG/driving_log.csv") as csvfile:
 			lines.append(line)
 
 # TODO: For each line in the driving log, read the corresponding image files
-images = []
-measurements = []
-# For testing perpuses use: for line in lines[0:10]:
-for line in lines[0:2]:
-	# TODO: Incorporate side camera images
-
-	filename = line[0].split('/')[-1]
-	left_filename = line[1].split('/')[-1]
-	right_filename = line[2].split('/')[-1]
-
-	current_path = "./data/IMG/IMG/" + filename
-	left_path = "./data/IMG/IMG/" + left_filename
-	right_path = "./data/IMG/IMG/" + right_filename
-
-	img_center = cv2.imread(current_path) 
-	img_left   = cv2.imread(left_path)
-	img_right  = cv2.imread(right_path)
-	images.append(img_center)
-	images.append(img_left)
-	images.append(img_right)
-	#images.append(img_right)
-	#images.extend([img_center, img_left, img_right])
-
-	# TODO: Get stearing messurements
-	angle_center = float(line[3])
-	angle_left = angle_center + 0.1
-	angle_right = angle_center - 0.1
-	measurements.extend([angle_center, angle_left, angle_right]) #Right
-
+samples = lines[0:1000]
+train_samples, validation_samples = train_test_split(samples, test_size=0.2)
 
 #plt.axis("off")
 #plt.imshow(cv2.cvtColor(images[0], cv2.COLOR_BGR2RGB))
 #plt.show()
 
-# TODO: Augment Data
-augmented_images = []
-augmented_mesurements = []
-
-for image, measurement in zip(images, measurements):
-	augmented_images.append(image)
-	augmented_mesurements.append(measurement)
-	# Append a flipped version of the image
-	augmented_images.append(cv2.flip(image,1))
-	augmented_mesurements.append(measurement*-1.0)
-
-# TODO: Convert data to numpy arrays to be used with Keras
-print("# of images in the data set: " + str(len(images)))
-print("# of images + augmented:     " + str(len(augmented_images)))
-X_train = np.array(augmented_images)
-y_train = np.array(augmented_mesurements)
-
+print("Number of Samples: " + str(len(samples)))
+train_generator = generator(train_samples, batch_size=32)
+validation_generator = generator(validation_samples, batch_size=32)
 
 # TODO: Build Neural Network
 # NVIDIA Architecture
@@ -98,8 +104,10 @@ model.add(Dense(10))
 model.add(Dense(1))
 
 model.compile(loss = 'mse', optimizer = 'adam')
-model.fit(X_train, y_train, validation_split = 0.2, shuffle = True, epochs = 5)
+#model.fit(X_train, y_train, validation_split = 0.2, shuffle = True, epochs = 5, batch_size=32)
+model.fit_generator(train_generator, samples_per_epoch= len(train_samples), validation_data=validation_generator, nb_val_samples=len(validation_samples), nb_epoch=3)
 
 # Save model
 model.save('model.h5')
 print("DONE Training")
+
