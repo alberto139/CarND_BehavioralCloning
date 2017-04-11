@@ -1,8 +1,9 @@
-#train.py
+# model.py
 # Author: Alberto Rivera
-# Date: April 9, 2017
+# Date: April 10, 2017
 # Description: train.py is the python code used to extract the images made
 # by the Udacity SDC simulator and use them to train a Convolutional Neural Network
+
 import os
 import sklearn
 from sklearn.utils import shuffle
@@ -85,11 +86,10 @@ print("Number of Samples: " + str(len(samples)))
 train_generator = generator(train_samples, batch_size=32)
 validation_generator = generator(validation_samples, batch_size=32)
 
-# TODO: Build Neural Network
-# NVIDIA Architecture
-# Simple Regression Model for Testing 
+# Convolutional Neural Network
+# NVIDIA Architecture with modifications
 model = Sequential()
-# TODO: Preprocess (Normalize and Mean Center)
+# Preprocess (Normalize and Mean Center)
 model.add(Lambda(lambda x: x / 255.0 - 0.5, input_shape = (160,320,3)))
 model.add(Cropping2D(cropping=((50,20), (0,0)), input_shape=(160,320,3)))
 model.add(Convolution2D(16, 3, 3, subsample=(2, 2), activation="relu"))
@@ -110,13 +110,3 @@ model.fit_generator(train_generator, samples_per_epoch= len(train_samples), vali
 # Save model
 model.save('model.h5')
 print("DONE Training")
-
-
-
-
-
-
-
-
-
-
